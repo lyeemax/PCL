@@ -41,7 +41,7 @@ std::tuple<int, int, int> RGB_Texture(rs2::video_frame texture, rs2::texture_coo
 //  object with depth and RGB data from a single
 //  frame captured using the Realsense.
 //===================================================
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_to_PCLXYZRGBA(const rs2::points& points, const rs2::video_frame& color){
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_to_PCLXYZRGB(const rs2::points& points, const rs2::video_frame& color){
 
     // Object Declaration (Point Cloud)
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
