@@ -63,7 +63,7 @@ namespace cVisionDL {
         filter.setNegative(false);
 
         filter.filter(*cloud);
-        std::cout<<"PCL downsample"<<cloud->points.size()<<std::endl;
+       // std::cout<<"PCL downsample"<<cloud->points.size()<<std::endl;
 //        bool resFilter = cVision3D::toolKit::passThroughFilter(oricloud, limit, oricloud);
 //        if(!resFilter){
 //            return false;
@@ -242,14 +242,12 @@ namespace cVisionDL {
         ec.setMaxClusterSize (2500000);               //设置一个聚类需要的最大点数目为25000
         ec.setSearchMethod (tree);                    //设置点云的搜索机制  ec.setInputCloud (cloud_filtered);
         ec.extract (clusterIndices);           //从点云中提取聚类，并将点云索引保存在cluster_indices中
-//        cVision3D::toolKit::segmentEuclidean(cloud, 8,10,1000,clusterIndices);
 
-//        boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("getClusters"));
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color0(cloud, 0, 0, 255);
-        viewer->addPointCloud<pcl::PointXYZ> (cloud, single_color0, "oricloud");
+       viewer->addPointCloud<pcl::PointXYZ> (cloud, single_color0, "oricloud");
 
         solve_num=clusterIndices.size();
-        std::cout<<solve_num<<std::endl;
+       // std::cout<<solve_num<<std::endl;
         for (int i = 0; i < clusterIndices.size(); ++i) {
             pcl::PointCloud<pcl::PointXYZ>::Ptr screwcluster (new pcl::PointCloud<pcl::PointXYZ>);
             for (int j = 0; j < clusterIndices[i].indices.size(); ++j) {
@@ -270,14 +268,13 @@ namespace cVisionDL {
             //viewer->addPointCloud<pcl::PointXYZ> (screwcluster, single_colorin, str);
             viewer->addPointCloud<pcl::PointXYZ> (screwcluster, single_colorin, std::to_string(i));
         }
-        //added by ma
-//        while (!viewer->wasStopped()){
-//            viewer->spin();
-//        }
 
         return true;
     }
-    bool DetectorBaseScrew::getScrewPose(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud) {
+    bool DetectorBaseScrew::getScrewPose(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,int i) {
+        poseViewer->removePointCloud("cloud"+std::to_string(i-1));
+        poseViewer->removeShape("plane"+std::to_string(i-1));
+        //poseViewer->removePolygonMesh("plane");
         std::vector<float> planeCoeff;
         int inlierSize = 0;
 
@@ -293,12 +290,12 @@ namespace cVisionDL {
         seg.setOptimizeCoefficients(true); //必须设置
         seg.setModelType(pcl::SACMODEL_PLANE); //设置模型类型，检测平面
         seg.setMethodType(pcl::SAC_RANSAC); //设置方法【聚类或随机样本一致性】
-        seg.setDistanceThreshold(2);
+        seg.setDistanceThreshold(0.01);
         seg.setInputCloud(cloud);
         seg.segment(*inliersIds, *coefficients); //分割操作
 
 
-        std::cout<<"coefficients = "<<*coefficients<<std::endl;
+      //  std::cout<<"coefficients = "<<*coefficients<<std::endl;
 
         //1.计算各Cluster所在平面参数，并转换法向量方向
         if (coefficients->values[2] < 0){
@@ -321,13 +318,13 @@ namespace cVisionDL {
 //        float theta = acos(planeNormal.dot(nz) / planeNormal.stableNorm()) * 180.0 / CV_PI;
         float theta = acos(planeNormal.dot(nz) / planeNormal.norm()) * 180.0 / CV_PI;
         if (theta > 15) {
-            std::cout<<theta<<std::endl;
+      //      std::cout<<theta<<std::endl;
             return false;
         }
 
-        std::cout<<"planeNormal.norm() = "<< planeNormal.norm()<<std::endl;
-        std::cout<<"planeNormal.stableNorm() = "<<planeNormal.stableNorm()<<std::endl;
-        std::cout<<"planeNormal = "<< planeNormal<<std::endl;
+      //  std::cout<<"planeNormal.norm() = "<< planeNormal.norm()<<std::endl;
+      //  std::cout<<"planeNormal.stableNorm() = "<<planeNormal.stableNorm()<<std::endl;
+     //   std::cout<<"planeNormal = "<< planeNormal<<std::endl;
 
 
         //3.旋转点云至水平，求内点BoundingBox，认为螺丝长宽比例大于0.85(待测试)，现采集螺丝点云，边缘部分点云基本保留完整
@@ -355,15 +352,15 @@ namespace cVisionDL {
         pcl::PointXYZ minpt, maxpt;
         pcl::getMinMax3D(*cloud, minpt, maxpt);
 //        std::cout<<"bdBox.position"<<bdBox.position<<std::endl;
-        std::cout<<"x.length = "<<(maxpt.x - minpt.x)<<std::endl;
-        std::cout<<"y.length = "<<(maxpt.y - minpt.y)<<std::endl;
-        std::cout<<"z.length = "<<(maxpt.z - minpt.z)<<std::endl;
+      //  std::cout<<"x.length = "<<(maxpt.x - minpt.x)<<std::endl;
+     //   std::cout<<"y.length = "<<(maxpt.y - minpt.y)<<std::endl;
+     //   std::cout<<"z.length = "<<(maxpt.z - minpt.z)<<std::endl;
 //        std::cout<<"rotationMatrix = "<<bdBox.rotationMatrix<<std::endl;
 
         float Length = std::min((maxpt.x - minpt.x),(maxpt.y - minpt.y));
         float Width = std::max((maxpt.x - minpt.x),(maxpt.y - minpt.y));
         float ratioLength2Width =  Length/Width;//确保ratio <= 1
-        std::cout<<"ratio = "<<ratioLength2Width<<std::endl;
+      //  std::cout<<"ratio = "<<ratioLength2Width<<std::endl;
         if(ratioLength2Width < 0.85) return false;
 
         Eigen::Vector4d center;
@@ -371,6 +368,10 @@ namespace cVisionDL {
         Eigen::Vector4d tCenter;
         tCenter = transferM.inverse() * center;//螺丝上表面中心位置
         std::cout<<"tCenter = "<<tCenter<<std::endl;
+        std::cout<<"------------------------"<<std::endl;
+        std::cout<<"The Transfer Matrix is:"<<std::endl;
+        std::cout<<transferM<<std::endl;
+        std::cout<<"------------------------"<<std::endl;
 
 
 ////        cVision3D::BoundingBox bdBox;
@@ -393,7 +394,7 @@ namespace cVisionDL {
 //        center << bdBox.position.x, bdBox.position.y, bdBox.position.z + bdBox.minPoint.z, 1;
 //        Eigen::Vector4d tCenter;
 //        tCenter = transferM.inverse() * center;//螺丝上表面中心位置
-        std::cout<<"tCenter = "<<tCenter<<std::endl;
+       // std::cout<<"tCenter = "<<tCenter<<std::endl;
 
 
         /*Eigen::Matrix3d rotationMatrix111,rotationMatrix222;
@@ -407,16 +408,18 @@ namespace cVisionDL {
 
 
 
-        boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer2(new pcl::visualization::PCLVisualizer("getScrewPose"));
+
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(cloud, 255, 0, 0);
-        viewer2->addPointCloud<pcl::PointXYZ>(cloud, single_color, "cloud");
+        poseViewer->addPointCloud<pcl::PointXYZ>(cloud, single_color, "cloud"+std::to_string(i));
 
 //        planeCoeff.push_back(coefficients->values[0]);
 //        planeCoeff.push_back(coefficients->values[1]);
 //        planeCoeff.push_back(coefficients->values[2]);
 //        planeCoeff.push_back(coefficients->values[3]);
 
-        viewer2->addPlane (*coefficients);
+        poseViewer->addPlane (*coefficients,"plane"+std::to_string(i));
+
+
 
 
 //        inlierSize = inliersIds->indices.size();
@@ -600,15 +603,18 @@ namespace cVisionDL {
     }
 
 
-    bool DetectorBaseScrew::downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr &oricloud ){
+   bool DetectorBaseScrew::downsample(pcl::PointCloud<pcl::PointXYZ>::Ptr &oricloud ){
 
-        pcl::VoxelGrid<pcl::PointXYZ> ds;
-        ds.setInputCloud (oricloud);
-        ds.setLeafSize ( _param.downSampeX , _param.downSampeY , _param.downSampeZ );
-        ds.filter (*oricloud);
-
+        pcl::PointCloud<pcl::PointXYZ>::Ptr sor_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+        sor.setInputCloud (oricloud);
+        sor.setMeanK (200);
+        sor.setStddevMulThresh (0.1);
+        sor.filter (*oricloud);
+       return  true;
+       // cout<<sor_filtered->size()<<"  --final"<<endl;
 //        bool res = cVision3D::toolKit::downSample(oricloud, _param.downSampeX,  _param.downSampeY,  _param.downSampeZ , oricloud);
-        std::cout<<"toolKit downsample"<<oricloud->points.size()<<std::endl;
+        //std::cout<<"toolKit downsample"<<oricloud->points.size()<<std::endl;
 
     }
 
@@ -874,12 +880,19 @@ namespace cVisionDL {
         }
     }
     void DetectorBaseScrew::initRealsense(){
+//        cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_BGR8, 45);
+//        cfg.enable_stream(RS2_STREAM_INFRARED, 1280, 720, RS2_FORMAT_Y8, 45);
+//        cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 45);
         pipe.start(cfg);
     }
-    void DetectorBaseScrew::generatePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, bool bSave) {
+    void DetectorBaseScrew::generatePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, bool bSave) {
+
         cloud->clear();
         auto frames = pipe.wait_for_frames(500);
+        std::cout<<frames.size()<<std::endl;
         auto depth = frames.get_depth_frame();
+        rs2::pointcloud pc;
+        rs2::points points;
         points = pc.calculate(depth);
         auto sp = points.get_profile().as<rs2::video_stream_profile>();
         cloud->width = sp.width();

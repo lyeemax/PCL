@@ -157,7 +157,7 @@ namespace cVisionDL {
         //0.1 由相机原始数据转化成，便于通过2D图像查找的mat格式的点云
         void generatePointCloud(const std::string &path_xy, const std::string &path_pointcloud,cv::Mat &pointCloud);
         //edit by ma
-        void generatePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, bool bSave);
+        void generatePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, bool bSave);
         void matToPCD(const cv::Mat& pointCloud, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, bool bSave=true);
         bool cropROI(const cv::Mat &imgOrg, const cv::Mat &pcOrg, cv::Mat &imgROI, cv::Mat &pcROI);
 
@@ -175,11 +175,13 @@ namespace cVisionDL {
         //分割得到各个螺丝点云簇
         bool getClusters(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> &clusters);
 
-        bool getScrewPose(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud);
+        bool getScrewPose(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,int i);
         void initViewer(){
             viewer=boost::make_shared<pcl::visualization::PCLVisualizer>("viewer");
+            poseViewer=boost::make_shared<pcl::visualization::PCLVisualizer>("getScrewPose");
         }
         pcl::visualization::PCLVisualizer::Ptr viewer;
+        boost::shared_ptr<pcl::visualization::PCLVisualizer> poseViewer;
 
     private:
         void initParam(const detectParam &param);
@@ -187,8 +189,6 @@ namespace cVisionDL {
         bool loadParamFile(const std::string &fileFullName, detectParam &param);
 
         detectParam _param;
-        rs2::pointcloud pc;
-        rs2::points points;
         rs2::pipeline pipe;
         rs2::config cfg;
 
