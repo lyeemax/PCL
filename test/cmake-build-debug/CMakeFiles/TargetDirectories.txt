@@ -1,3 +1,0 @@
-/home/cobot/Desktop/realsensepcl/test/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/cobot/Desktop/realsensepcl/test/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/cobot/Desktop/realsensepcl/test/cmake-build-debug/CMakeFiles/rs-pcl.dir
