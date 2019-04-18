@@ -73,7 +73,9 @@ namespace cVisionDL {
 
 
     bool DetectorBaseScrew::getPlaneInliers(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud ,pcl::PointIndices::Ptr &inliersIds,pcl::PointCloud<pcl::PointXYZ>::Ptr &inlierscloud,float &inliersSizeRatios){
-
+        static int i=0;
+        inlierscloud->clear();
+        viewer->removePointCloud(std::to_string(i));
         pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients); //存储输出的模型的系数
 //        pcl::PointIndices::Ptr inliersIds (new pcl::PointIndices); //存储内点，使用的点 //创建分割对象
         pcl::SACSegmentation<pcl::PointXYZ> seg; //可选设置
@@ -81,7 +83,9 @@ namespace cVisionDL {
         seg.setModelType (pcl::SACMODEL_PLANE); //设置模型类型，检测平面
         seg.setMethodType (pcl::SAC_RANSAC); //设置方法【聚类或随机样本一致性】
 //        seg.setMaxIterations(100);
-        seg.setDistanceThreshold(4);
+        seg.setDistanceThreshold(0.01);
+        seg.setMaxIterations(100);
+        seg.setProbability(0.95);
         seg.setInputCloud (cloud);
         seg.segment (*inliersIds, *coefficients); //分割操作
 
@@ -92,6 +96,8 @@ namespace cVisionDL {
         inlierscloud->width = inlierscloud->points.size();
         inlierscloud->height = 1;
         inlierscloud->is_dense = true;
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_colorin(inlierscloud, 255, 255, 255);
+        viewer->addPointCloud(inlierscloud,std::to_string(i));
 
 
         inliersSizeRatios = inliersIds->indices.size()/cloud->points.size();
@@ -106,14 +112,15 @@ namespace cVisionDL {
     }
 
     bool DetectorBaseScrew::getbkground(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,pcl::PointCloud<pcl::PointXYZ>::Ptr &bkgroundcloud , pcl::PointCloud<pcl::PointXYZ>::Ptr &targetcloud){
-
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloudFilter(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor; //创建滤波器对象
-        sor.setInputCloud(cloud); //设置待滤波的点云
-        sor.setMeanK(_param.meanK); //设置在进行统计时考虑查询点临近点数
-        sor.setStddevMulThresh(_param.mulStd); //设置判断是否为离群点的阀值，1个标准差以上就是离群点
-        //sor.setNegative(true);         //保存离群点
-        sor.filter(*cloudFilter); //存储
+        static std::string str;
+        viewer->removePointCloud(str);
+//        pcl::PointCloud<pcl::PointXYZ>::Ptr cloudFilter(new pcl::PointCloud<pcl::PointXYZ>);
+//        pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor; //创建滤波器对象
+//        sor.setInputCloud(cloud); //设置待滤波的点云
+//        sor.setMeanK(_param.meanK); //设置在进行统计时考虑查询点临近点数
+//        sor.setStddevMulThresh(_param.mulStd); //设置判断是否为离群点的阀值，1个标准差以上就是离群点
+//        //sor.setNegative(true);         //保存离群点
+//        sor.filter(*cloudFilter); //存储
         // 以下是调用地 cobsys 程序
 //        bool res = cVision3D::toolKit::statisticalFilter(cloud, _param.meanK, _param.mulStd, cloudFilter);
 //        if(!res)
@@ -122,12 +129,14 @@ namespace cVisionDL {
         //利用欧式聚类分割出各个点云簇，去除螺丝，保留其他
         std::vector<pcl::PointIndices> clusterIndices;
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
-        tree->setInputCloud (cloudFilter);
+        tree->setInputCloud (cloud);
+        //std::cout<<cloudFilter->size()<<std::endl;
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;   //欧式聚类对象
         ec.setClusterTolerance ( _param.segdistanceThreshold );                     // 设置近邻搜索的搜索半径为2cm
         ec.setMinClusterSize ( _param.segBkgroundMaxSize );                 //设置一个聚类需要的最少的点数目为100
         ec.setMaxClusterSize ( _param.segScrewMaxSize*1.5 );               //设置一个聚类需要的最大点数目为25000
-        ec.setSearchMethod (tree);                    //设置点云的搜索机制  ec.setInputCloud (cloud_filtered);
+        ec.setSearchMethod (tree);                    //设置点云的搜索机制
+        ec.setInputCloud (cloud);
         ec.extract (clusterIndices);           //从点云中提取聚类，并将点云索引保存在cluster_indices中
 
 //        cVision3D::toolKit::segmentEuclidean(cloudFilter, _param.segdistanceThreshold ,_param.segScrewMaxSize*1.5 ,_param.segBkgroundMaxSize,clusterIndices);
@@ -142,12 +151,12 @@ namespace cVisionDL {
         bkgroundcloud->is_dense = true;
 */
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloudFilter2(new pcl::PointCloud<pcl::PointXYZ>);
-        boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer0(new pcl::visualization::PCLVisualizer("newCluster_inliers"));
-
+        //boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer0(new pcl::visualization::PCLVisualizer("newCluster_inliers"));
+std::cout<<clusterIndices.size()<<std::endl;
         for (int i = 0; i < clusterIndices.size(); ++i) {
             pcl::PointCloud<pcl::PointXYZ>::Ptr newCluster(new pcl::PointCloud<pcl::PointXYZ>);
             for (unsigned int jj = 0; jj < clusterIndices[i].indices.size(); jj++) {
-                newCluster->points.push_back(cloudFilter->points[clusterIndices[i].indices[jj]]);
+                newCluster->points.push_back(cloud->points[clusterIndices[i].indices[jj]]);
             }
             newCluster->width = newCluster->points.size();
             newCluster->height = 1;
@@ -166,16 +175,15 @@ namespace cVisionDL {
             int b = rand()*255;
 
             pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_colorin(newCluster_inliers, r, g, b);
-            std::string str;
             str = "cloud" + std::to_string(r+g+b);
-            viewer0->addPointCloud<pcl::PointXYZ> (newCluster_inliers, single_colorin, str);
+            viewer->addPointCloud<pcl::PointXYZ> (newCluster_inliers, single_colorin, str);
 
             *bkgroundcloud = *bkgroundcloud + *newCluster_inliers;
 
             getScrewCloud(newCluster,inliersIds,newCluster_outliers);
             *targetcloud = *targetcloud + *newCluster_outliers;
         }
-        cloud = cloudFilter;
+      //  cloud = cloud;
 //        std::cout<<"bkgroundinliersIds.size() = "<<bkgroundinliersIds->indices.size()<<std::endl;
 
 //        boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer2(new pcl::visualization::PCLVisualizer("getbkground clustercloud111"));
@@ -207,7 +215,7 @@ namespace cVisionDL {
         return true;
     }
 
-    bool DetectorBaseScrew::getScrewCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,pcl::PointIndices::Ptr &otherinliersIds,pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFilter){
+        bool DetectorBaseScrew::getScrewCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,pcl::PointIndices::Ptr &otherinliersIds,pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFilter){
 
         // Extract the planar inliers from the input cloud
         pcl::ExtractIndices<pcl::PointXYZ> extract;
@@ -226,6 +234,7 @@ namespace cVisionDL {
     }
 
     bool DetectorBaseScrew::getClusters(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> &clusters){
+        clusters.clear();
         static int solve_num=0;
         for (int i = 0; i < solve_num; ++i) {
             viewer->removePointCloud(std::to_string(i));
@@ -238,16 +247,16 @@ namespace cVisionDL {
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;   //欧式聚类对象
         ec.setInputCloud(cloud) ;
         ec.setClusterTolerance (0.01);                     // 设置近邻搜索的搜索半径为2cm
-        ec.setMinClusterSize (100);                 //设置一个聚类需要的最少的点数目为100
-        ec.setMaxClusterSize (2500000);               //设置一个聚类需要的最大点数目为25000
+        ec.setMinClusterSize (20);                 //设置一个聚类需要的最少的点数目为100
+        ec.setMaxClusterSize (2500);               //设置一个聚类需要的最大点数目为25000
         ec.setSearchMethod (tree);                    //设置点云的搜索机制  ec.setInputCloud (cloud_filtered);
         ec.extract (clusterIndices);           //从点云中提取聚类，并将点云索引保存在cluster_indices中
 
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color0(cloud, 0, 0, 255);
        viewer->addPointCloud<pcl::PointXYZ> (cloud, single_color0, "oricloud");
 
-        solve_num=clusterIndices.size();
-       // std::cout<<solve_num<<std::endl;
+       solve_num=clusterIndices.size();
+
         for (int i = 0; i < clusterIndices.size(); ++i) {
             pcl::PointCloud<pcl::PointXYZ>::Ptr screwcluster (new pcl::PointCloud<pcl::PointXYZ>);
             for (int j = 0; j < clusterIndices[i].indices.size(); ++j) {
@@ -262,18 +271,19 @@ namespace cVisionDL {
             int g = rand()*255;
             int b = rand()*255;
 
-            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_colorin(screwcluster, r, g, b);
+            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_colorin(screwcluster, 255, 0, 0);
             std::string str;
             str = "cloud" + std::to_string(r+g+b);
             //viewer->addPointCloud<pcl::PointXYZ> (screwcluster, single_colorin, str);
             viewer->addPointCloud<pcl::PointXYZ> (screwcluster, single_colorin, std::to_string(i));
+            //std::cout<<solve_num<<std::endl;
         }
 
         return true;
     }
-    bool DetectorBaseScrew::getScrewPose(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,int i) {
-        poseViewer->removePointCloud("cloud"+std::to_string(i-1));
-        poseViewer->removeShape("plane"+std::to_string(i-1));
+    bool DetectorBaseScrew::getScrewPose(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud) {
+        poseViewer->removePointCloud("cloud");
+        poseViewer->removeShape("plane");
         //poseViewer->removePolygonMesh("plane");
         std::vector<float> planeCoeff;
         int inlierSize = 0;
@@ -410,14 +420,14 @@ namespace cVisionDL {
 
 
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(cloud, 255, 0, 0);
-        poseViewer->addPointCloud<pcl::PointXYZ>(cloud, single_color, "cloud"+std::to_string(i));
+        poseViewer->addPointCloud<pcl::PointXYZ>(cloud, single_color, "cloud");
 
 //        planeCoeff.push_back(coefficients->values[0]);
 //        planeCoeff.push_back(coefficients->values[1]);
 //        planeCoeff.push_back(coefficients->values[2]);
 //        planeCoeff.push_back(coefficients->values[3]);
 
-        poseViewer->addPlane (*coefficients,"plane"+std::to_string(i));
+        poseViewer->addPlane (*coefficients,"plane");
 
 
 
@@ -608,9 +618,15 @@ namespace cVisionDL {
         pcl::PointCloud<pcl::PointXYZ>::Ptr sor_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
         sor.setInputCloud (oricloud);
-        sor.setMeanK (200);
+        sor.setMeanK (50);
         sor.setStddevMulThresh (0.1);
         sor.filter (*oricloud);
+//        pcl::VoxelGrid<pcl::PointXYZ> vox;
+//        vox.setInputCloud (oricloud);
+//        vox.setLeafSize (0.01f, 0.01f, 0.01f);
+//        vox.filter (*oricloud);
+
+
        return  true;
        // cout<<sor_filtered->size()<<"  --final"<<endl;
 //        bool res = cVision3D::toolKit::downSample(oricloud, _param.downSampeX,  _param.downSampeY,  _param.downSampeZ , oricloud);
@@ -889,7 +905,7 @@ namespace cVisionDL {
 
         cloud->clear();
         auto frames = pipe.wait_for_frames(500);
-        std::cout<<frames.size()<<std::endl;
+        //std::cout<<frames.size()<<std::endl;
         auto depth = frames.get_depth_frame();
         rs2::pointcloud pc;
         rs2::points points;

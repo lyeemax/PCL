@@ -20,40 +20,18 @@
 
 using namespace std;
 static bool process=true;
-void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event,
-                            void* viewer_void)
-{
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = *static_cast<boost::shared_ptr<pcl::visualization::PCLVisualizer> *> (viewer_void);
-    if (event.getKeySym () == "r" && event.keyDown ())
-    {
-        std::cout << "r was pressed => start processing" << std::endl;
-        process= true;
-
-    }
-}
-
-boost::shared_ptr<pcl::visualization::PCLVisualizer> interactionCustomizationVis ()
-{
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-    viewer->setBackgroundColor (0, 0, 0);
-    viewer->addCoordinateSystem (1.0);
-    viewer->registerKeyboardCallback (keyboardEventOccurred, (void*)&viewer);
-    return (viewer);
-}
 
 int main(int argc, char * argv[]) try {
     //signal( SIGINT, handler );
     // Declare pointcloud object, for calculating pointclouds and texture mappings
     rs2::pointcloud pc;
-    rs2::context                ctx;
     // We want the points object to be persistent so we can display the last cloud when a frame drops
     rs2::points points;
    pcl::visualization::CloudViewer cviewer ("Original Viewer");
 //    pcl::visualization::RangeImageVisualizer range_image_widget ("range");
 //    range_image_widget.setWindowTitle("range");
     // Declare RealSense pipeline, encapsulating the actual device and sensors
-    rs2::pipeline pipe(ctx);
-    rs2::colorizer colorizer;
+    rs2::pipeline pipe;
     rs2::config cfg;
 
     //window app(480, 480,"RGB");
@@ -67,41 +45,44 @@ int main(int argc, char * argv[]) try {
     while (!cviewer.wasStopped()) {
         auto frames = pipe.wait_for_frames(10000);
        // boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-
+        //auto color = frames.get_infrared_frame();
+        //pc.map_to(color);
         auto depth = frames.get_depth_frame();
-        auto color = frames.get_color_frame();
+       auto color = frames.get_color_frame();
+        pc.map_to(color);
+
        // render_frames[color.get_profile().unique_id()] = colorizer.process(color);
        // app.show(render_frames);
         // Generate the pointcloud and texture mappings
         points = pc.calculate(depth);
 
-        auto pcl_points = points_to_PCLXYZ(points);
+        auto pcl_points = points_to_PCLXYZRGB(points,color);
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr pass_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::PassThrough<pcl::PointXYZ> pass;
-        pass.setInputCloud(pcl_points);
-        pass.setFilterFieldName("z");
-        pass.setFilterLimits(0.0,1.5);
-        pass.filter(*pass_filtered);
-        cout<<pass_filtered->size()<<" --first"<<endl;
-
-        pcl::PointCloud<pcl::PointXYZ>::Ptr voxel_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::VoxelGrid<pcl::PointXYZ> vox;
-        vox.setInputCloud (pass_filtered);
-        vox.setLeafSize (0.01f, 0.01f, 0.01f);
-        vox.filter (*voxel_filtered);
-
-
-        pcl::PointCloud<pcl::PointXYZ>::Ptr sor_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-        sor.setInputCloud (voxel_filtered);
-        sor.setMeanK (200);
-        sor.setStddevMulThresh (0.1);
-        sor.filter (*sor_filtered);
-        cout<<sor_filtered->size()<<"  --final"<<endl;
-        cviewer.showCloud(sor_filtered);
+//        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pass_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
+//        pcl::PassThrough<pcl::PointXYZRGB> pass;
+//        pass.setInputCloud(pcl_points);
+//        pass.setFilterFieldName("z");
+//        pass.setFilterLimits(0.0,1.5);
+//        pass.filter(*pass_filtered);
+//        cout<<pass_filtered->size()<<" --first"<<endl;
+//
+//        pcl::PointCloud<pcl::PointXYZRGB>::Ptr voxel_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
+//        pcl::VoxelGrid<pcl::PointXYZRGB> vox;
+//        vox.setInputCloud (pass_filtered);
+//        vox.setLeafSize (0.01f, 0.01f, 0.01f);
+//        vox.filter (*voxel_filtered);
+//
+//
+//        pcl::PointCloud<pcl::PointXYZRGB>::Ptr sor_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
+//        pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor;
+//        sor.setInputCloud (voxel_filtered);
+//        sor.setMeanK (200);
+//        sor.setStddevMulThresh (0.1);
+//        sor.filter (*sor_filtered);
+//        cout<<sor_filtered->size()<<"  --final"<<endl;
+        cviewer.showCloud(pcl_points);
 //        pcl::PCDWriter writer;
-//        writer.write<pcl::PointXYZ> ("test.pcd", *sor_filtered, false);
+//        writer.write<pcl::PointXYZRGB> ("test.pcd", *sor_filtered, false);
 
 //        Eigen::Affine3f sensorPose;
 //        sensorPose.setIdentity();

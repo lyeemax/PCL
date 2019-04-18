@@ -5,22 +5,22 @@
     <roiW>1600</roiW>
     <roiH>1600</roiH>
 
-    <ptMinX>-0.5</ptMinX>//点云过滤参数，在这个范围内的点云是有效点云
-    <ptMaxX>0.5</ptMaxX>//点云过滤参数，在这个范围内的点云是有效点云
-    <ptMinY>-0.5</ptMinY>//点云过滤参数，在这个范围内的点云是有效点云
-    <ptMaxY>0.50</ptMaxY>//点云过滤参数，在这个范围内的点云是有效点云
-    <ptMinZ>0.3</ptMinZ>//点云过滤参数
-    <ptMaxZ>1.5</ptMaxZ>//点云过滤参数，在这个范围内的点云是有效点云
+    <ptMinX>-0.2</ptMinX>//点云过滤参数，在这个范围内的点云是有效点云
+    <ptMaxX>0.2</ptMaxX>//点云过滤参数，在这个范围内的点云是有效点云
+    <ptMinY>-0.2</ptMinY>//点云过滤参数，在这个范围内的点云是有效点云
+    <ptMaxY>0.20</ptMaxY>//点云过滤参数，在这个范围内的点云是有效点云
+    <ptMinZ>0.1</ptMinZ>//点云过滤参数
+    <ptMaxZ>1</ptMaxZ>//点云过滤参数，在这个范围内的点云是有效点云
 
     <downSampeX>0.01</downSampeX>//下采样参数
     <downSampeY>0.01</downSampeY>//下采样参数
     <downSampeZ>0.01</downSampeZ>//下采样参数
 
 
-    <meanK>40</meanK>//邻域点个数
-    <mulStd>2.8</mulStd>//标准差的乘数
+    <meanK>100</meanK>//邻域点个数
+    <mulStd>0.1</mulStd>//标准差的乘数
 
-    <segdistanceThreshold>3</segdistanceThreshold>//平面拟合的距离参数
+    <segdistanceThreshold>0.02</segdistanceThreshold>//平面拟合的距离参数
     <segScrewMaxSize>1000</segScrewMaxSize>//螺丝最大点云数量
     <segBkgroundMaxSize>1000000</segBkgroundMaxSize>//背景最大点云数量
 
@@ -34,7 +34,7 @@
 
     //重建参数
     //贪婪三角化参数
-    <greedyConnectPointDisMax>20</greedyConnectPointDisMax>//贪婪三角化连接点之间最大距离
+    <greedyConnectPointDisMax>0.2</greedyConnectPointDisMax>//贪婪三角化连接点之间最大距离
     <greedySearchDisMax>3</greedySearchDisMax>//设置连接点最大距离
     <greedyNearestNeighborsNum>20</greedyNearestNeighborsNum>//设置可搜索邻域个数
     <greedySurfaceAngle>45</greedySurfaceAngle>//设置法线方向偏离样本的最大角度    //单位 度
@@ -52,12 +52,12 @@
     <poissonSolverDivide>8</poissonSolverDivide>//设置求解线性方程组的Gauss-Seidel迭代方法的深度
 
 
-    <filterRadius>3</filterRadius>//点云噪声过滤的滤波半径
+    <filterRadius>0.03</filterRadius>//点云噪声过滤的滤波半径
     <filterMinNum>5</filterMinNum>//点云噪声过滤的最小数
 
 
     <distanceThreshold>2</distanceThreshold>//平面拟合的距离参数
-    <segMinSize>1000</segMinSize>//允许的点云簇的最小尺寸
+    <segMinSize>10</segMinSize>//允许的点云簇的最小尺寸
     <segMaxSize>4000000</segMaxSize>//允许的点云簇的最大尺寸
 
     <segResidualThreshold>0.5</segResidualThreshold>//距离阈值

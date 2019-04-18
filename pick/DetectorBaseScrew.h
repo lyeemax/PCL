@@ -172,10 +172,11 @@ namespace cVisionDL {
         bool getbkground(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,pcl::PointCloud<pcl::PointXYZ>::Ptr &bkgroundcloud , pcl::PointCloud<pcl::PointXYZ>::Ptr &targetcloud);
 
         bool getScrewCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,pcl::PointIndices::Ptr &otherinliersIds,pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFilter);
+        bool getScrewCloud2(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,pcl::PointCloud<pcl::PointXYZ>::Ptr &screwCloud);
         //分割得到各个螺丝点云簇
         bool getClusters(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> &clusters);
 
-        bool getScrewPose(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,int i);
+        bool getScrewPose(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud);
         void initViewer(){
             viewer=boost::make_shared<pcl::visualization::PCLVisualizer>("viewer");
             poseViewer=boost::make_shared<pcl::visualization::PCLVisualizer>("getScrewPose");
